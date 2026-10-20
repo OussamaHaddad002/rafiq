@@ -1,0 +1,61 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/noto-sans-arabic';
+
+/* Design tokens (shadcn/ui convention). Utilities like bg-background read these. */
+:root {
+  --background: oklch(0.985 0.002 197);
+  --foreground: oklch(0.21 0.02 200);
+  --card: oklch(1 0 0);
+  --muted: oklch(0.96 0.006 197);
+  --muted-foreground: oklch(0.5 0.02 200);
+  --border: oklch(0.91 0.01 197);
+  --primary: oklch(0.51 0.09 186);
+  --primary-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.58 0.2 27);
+  --ring: oklch(0.6 0.1 186);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.17 0.012 200);
+    --foreground: oklch(0.95 0.005 197);
+    --card: oklch(0.21 0.014 200);
+    --muted: oklch(0.25 0.014 200);
+    --muted-foreground: oklch(0.7 0.015 200);
+    --border: oklch(0.3 0.014 200);
+    --primary: oklch(0.7 0.11 182);
+    --primary-foreground: oklch(0.17 0.012 200);
+    --destructive: oklch(0.68 0.19 25);
+    --ring: oklch(0.7 0.11 182);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-ring: var(--ring);
+  /* Latin glyphs from Inter, Arabic glyphs fall back to Noto Sans Arabic. */
+  --font-sans: 'Inter Variable', 'Noto Sans Arabic Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}

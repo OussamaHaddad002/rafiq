@@ -1,0 +1,26 @@
+{
+  "app": {
+    "name": "Rafiq",
+    "tagline": "Réceptionniste virtuel · Clinique Rafiq",
+    "newChat": "Nouvelle conversation",
+    "language": "Langue",
+    "online": "Assistant en ligne",
+    "offline": "Assistant hors ligne"
+  },
+  "chat": {
+    "emptyTitle": "Bonjour, je suis Rafiq",
+    "emptyBody": "Posez-moi vos questions sur la clinique (horaires, tarifs, assurance) ou demandez-moi de l'aide pour un rendez-vous.",
+    "suggestions": [
+      "Quels sont vos horaires d'ouverture ?",
+      "Combien coûte une consultation chez le dentiste ?",
+      "Je voudrais un rendez-vous chez un cardiologue"
+    ],
+    "placeholder": "Posez votre question…",
+    "send": "Envoyer",
+    "stop": "Arrêter",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "disclaimer": "Démo d'une clinique fictive. Rafiq est un assistant IA et ne donne pas d'avis médical.",
+    "assistant": "Rafiq",
+    "you": "Vous"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "app": {
+    "name": "Rafiq",
+    "tagline": "Virtual receptionist · Clinique Rafiq",
+    "newChat": "New chat",
+    "language": "Language",
+    "online": "Assistant online",
+    "offline": "Assistant offline"
+  },
+  "chat": {
+    "emptyTitle": "Hi, I'm Rafiq",
+    "emptyBody": "Ask me about the clinic (opening hours, prices, insurance) or get help with an appointment.",
+    "suggestions": [
+      "What are your opening hours?",
+      "How much is a dentist consultation?",
+      "I'd like an appointment with a cardiologist"
+    ],
+    "placeholder": "Ask Rafiq anything…",
+    "send": "Send",
+    "stop": "Stop",
+    "error": "Something went wrong. Please try again.",
+    "disclaimer": "Demo of a fictional clinic. Rafiq is an AI assistant and does not give medical advice.",
+    "assistant": "Rafiq",
+    "you": "You"
+  }
+}
