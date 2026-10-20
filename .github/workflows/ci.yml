@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API · lint, types, tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: rafiq
+          POSTGRES_PASSWORD: rafiq
+          POSTGRES_DB: rafiq_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rafiq -d rafiq_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://rafiq:rafiq@localhost:5432/rafiq_test
+      TEST_DATABASE_URL: postgresql+asyncpg://rafiq:rafiq@localhost:5432/rafiq_test
+      LLM_PROVIDER: fake
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          working-directory: apps/api
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy app tests
+      - name: Migrations apply and match the models
+        run: uv run alembic upgrade head && uv run alembic check
+      - run: uv run pytest
+
+  web:
+    name: Web · lint, types, tests, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci --no-fund --no-audit
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  docker:
+    name: Docker · build and smoke test
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker compose build
+      - name: Start the stack (fake LLM, no secrets needed)
+        run: |
+          echo "LLM_PROVIDER=fake" > .env
+          docker compose up -d --wait
+      - name: Smoke test through nginx
+        run: |
+          curl -fsS http://localhost:8080/ | grep -q '<div id="root">'
+          curl -fsS http://localhost:8080/api/health | grep -q '"status":"ok"'
+          curl -fsSN -X POST http://localhost:8080/api/chat \
+            -H 'content-type: application/json' \
+            -d '{"message":"ping","language":"en"}' | grep -q '^event: done'
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose down -v
