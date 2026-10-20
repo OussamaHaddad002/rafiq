@@ -15,7 +15,7 @@ This is the single source of truth for **what's done, what's in progress, and wh
 
 | # | Milestone | Status | Demo checkpoint |
 |---|---|---|---|
-| M0 | Planning & setup | 🟡 | Plan written, repo on GitHub |
+| M0 | Planning & setup | ✅ | Plan written, repo on GitHub |
 | M1 | Foundation | 🟡 | `docker compose up` → streaming chat in AR/FR/EN, CI green |
 | M2 | RAG | ⬜ | Arabic question → cited answer from a French PDF |
 | M3 | Agent & tools | ⬜ | Full booking by chat in each language |
@@ -24,11 +24,11 @@ This is the single source of truth for **what's done, what's in progress, and wh
 | M6 | Voice | ⬜ | Book an appointment by voice |
 | M7 | Deploy, polish & showcase | ⬜ | Public URL + README + 2-minute video |
 
-**Current focus:** finish M1 (CI green, test with a real OpenAI key, visual check) → M2
+**Current focus:** finish M1 (test with a real OpenAI key, visual check) → M2
 
 ---
 
-## M0 — Planning & setup 🟡
+## M0 — Planning & setup ✅
 
 **Goal:** a clear plan and an empty repo that's ready to build in.
 
@@ -36,8 +36,8 @@ This is the single source of truth for **what's done, what's in progress, and wh
 - [x] Write milestones and tasks → `docs/ROADMAP.md`
 - [x] Add `CLAUDE.md` with working rules
 - [x] `git init`, `.gitignore`, `.gitattributes`, `.editorconfig`, LICENSE (MIT)
-- [ ] Create the GitHub repo and push
-- [ ] Set up API keys locally (`.env`, never committed): Anthropic; later STT and TTS providers
+- [x] Create the GitHub repo and push → https://github.com/OussamaHaddad002/rafiq
+- [ ] Set up API keys locally (`.env`, never committed): OpenAI; later STT and TTS providers
 
 **Done when:** the repo is on GitHub with the docs.
 
@@ -70,7 +70,7 @@ This is the single source of truth for **what's done, what's in progress, and wh
 - [x] `docker-compose.yml`: api, web, postgres (pgvector). Redis postponed until it's needed (M7 rate limiting)
 - [x] `.github/workflows/ci.yml`: ruff, mypy, migrations + `alembic check`, pytest (Postgres service), prettier, oxlint, tsc, vitest, build, docker build + smoke test
 - [x] `.env.example`; common commands in `CLAUDE.md` (no Makefile: `make` isn't available on Windows)
-- [ ] CI green on GitHub
+- [x] CI green on GitHub
 
 **Done when:** `docker compose up` gives a working streaming chat in all 3 languages with correct RTL, and CI is green.
 
@@ -226,6 +226,7 @@ Newest first. One line per work session: what got done, any blockers, what's nex
 
 | Date | Milestone | Update |
 |---|---|---|
+| 2026-10-20 | M0/M1 | Repo public on GitHub, CI green (API, web, Docker smoke test). Pinned `setup-uv` by SHA because it has no floating `v10` tag. |
 | 2026-10-20 | M1 | Switched the default LLM to OpenAI `gpt-5.4-mini` (budget), using the Responses API with low reasoning and `store=False`. Claude is kept as an option. Added provider tests against mocked SDK streams; 26 API tests. |
 | 2026-10-20 | M1 | Built the skeleton. API: FastAPI + async SQLAlchemy + Alembic, native SSE chat, Claude + fake providers, JSON logs with request IDs; 15 tests. Web: React 19 / Vite 8 / Tailwind 4, AR/FR/EN with RTL, streaming chat UI; 9 tests. Docker Compose (db, api, web), and CI with lint, types, tests and a Docker smoke test (actionlint clean). Verified locally: full stack through nginx with the fake LLM. Left: push to GitHub and get CI green, test with a real Claude key, visual check in a browser. |
 | 2026-10-20 | M0 | git init + repo hygiene files done. Project defined. Wrote `docs/PROJECT.md`, `docs/ROADMAP.md`, `CLAUDE.md`. Next: git init + GitHub repo, then start M1. |

@@ -1,5 +1,7 @@
 # Rafiq · رفيق
 
+[![CI](https://github.com/OussamaHaddad002/rafiq/actions/workflows/ci.yml/badge.svg)](https://github.com/OussamaHaddad002/rafiq/actions/workflows/ci.yml)
+
 **A voice and chat AI receptionist for clinics, in Arabic, French and English.** It answers patient questions from the clinic's documents (RAG), and books and manages appointments (tool calling). It comes with an eval suite, a cost and latency dashboard, and CI that fails when eval scores drop.
 
 > 🚧 Work in progress. The foundation (streaming trilingual chat, Docker, CI) is done. RAG, tools, evals, dashboard and voice are next. See the [roadmap](docs/ROADMAP.md).
