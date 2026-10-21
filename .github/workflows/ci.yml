@@ -81,13 +81,18 @@ jobs:
         run: |
           echo "LLM_PROVIDER=fake" > .env
           docker compose up -d --wait
+      - name: Ingest the knowledge base (fake embeddings)
+        run: docker compose exec -T api python -m app.rag.ingest
       - name: Smoke test through nginx
         run: |
           curl -fsS http://localhost:8080/ | grep -q '<div id="root">'
           curl -fsS http://localhost:8080/api/health | grep -q '"status":"ok"'
           curl -fsSN -X POST http://localhost:8080/api/chat \
             -H 'content-type: application/json' \
-            -d '{"message":"ping","language":"en"}' | grep -q '^event: done'
+            -d '{"message":"Combien coûte la cardiologie ?","language":"fr"}' > chat.txt
+          grep -q '^event: sources' chat.txt
+          grep -q 'tarifs.pdf' chat.txt
+          grep -q '^event: done' chat.txt
       - name: Logs on failure
         if: failure()
         run: docker compose logs

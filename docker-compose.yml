@@ -25,6 +25,9 @@ services:
         required: false
     environment:
       DATABASE_URL: postgresql+asyncpg://rafiq:rafiq@db:5432/rafiq
+      KNOWLEDGE_BASE_DIR: /data/clinic
+    volumes:
+      - ./data:/data:ro
     ports:
       - "8000:8000"
     depends_on:
