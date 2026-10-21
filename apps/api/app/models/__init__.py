@@ -1,5 +1,26 @@
 from app.models.base import Base
+from app.models.clinic import (
+    SPECIALTIES,
+    Appointment,
+    CallbackRequest,
+    Doctor,
+    PendingAction,
+    Schedule,
+)
 from app.models.conversation import Conversation, Message
 from app.models.document import EMBEDDING_DIM, Chunk, Document
 
-__all__ = ["EMBEDDING_DIM", "Base", "Chunk", "Conversation", "Document", "Message"]
+__all__ = [
+    "EMBEDDING_DIM",
+    "SPECIALTIES",
+    "Appointment",
+    "Base",
+    "CallbackRequest",
+    "Chunk",
+    "Conversation",
+    "Doctor",
+    "Document",
+    "Message",
+    "PendingAction",
+    "Schedule",
+]

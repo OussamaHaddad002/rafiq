@@ -28,4 +28,12 @@ class Message(TimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(16))
     content: Mapped[str] = mapped_column(Text)
     # Assistant messages: the documents given to the model, numbered as cited in `content`.
-    sources: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB)
+    sources: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB(none_as_null=True))
+    # Assistant messages: tools called this turn, in order: {id, name, arguments, result}.
+    tool_calls: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB(none_as_null=True))
+    # Assistant messages: id of the pending action shown as a Confirm / Cancel card.
+    action_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("pending_actions.id", ondelete="SET NULL")
+    )
+    # User messages sent by pressing Confirm / Cancel: {action_id, decision, status, result}.
+    action_result: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))

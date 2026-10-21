@@ -33,6 +33,15 @@ class Settings(BaseSettings):
 
     # Most recent messages sent to the model as conversation context.
     chat_history_limit: int = 20
+    # Model calls per turn in the tool loop (each tool round trip is one step).
+    agent_max_steps: int = 6
+
+    clinic_timezone: str = "Africa/Tunis"
+    slot_minutes: int = 30
+    # Earliest bookable slot, counted from now.
+    booking_min_notice_minutes: int = 120
+    # How long a Confirm / Cancel card stays valid.
+    pending_action_ttl_minutes: int = 15
 
     @field_validator("llm_model", "llm_reasoning_effort", "embedding_provider", mode="before")
     @classmethod
