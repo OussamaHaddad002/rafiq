@@ -21,12 +21,25 @@ class ChatRequest(BaseModel):
         return value
 
 
+class SourceOut(BaseModel):
+    """A knowledge-base excerpt given to the model; `n` is its citation number, as in [n]."""
+
+    n: int
+    source: str
+    title: str
+    page: int | None
+    section: str | None
+    lang: str
+    excerpt: str
+
+
 class MessageOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     role: Literal["user", "assistant"]
     content: str
+    sources: list[SourceOut] | None = None
     created_at: datetime
 
 

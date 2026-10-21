@@ -33,7 +33,9 @@ async def database() -> AsyncIterator[None]:
 async def clean_tables() -> AsyncIterator[None]:
     yield
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE messages, conversations RESTART IDENTITY CASCADE"))
+        await conn.execute(
+            text("TRUNCATE messages, conversations, chunks, documents RESTART IDENTITY CASCADE")
+        )
     app.dependency_overrides.clear()
 
 

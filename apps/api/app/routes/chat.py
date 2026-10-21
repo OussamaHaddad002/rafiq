@@ -11,6 +11,7 @@ from app.core.config import Settings, get_settings
 from app.core.db import SessionDep
 from app.llm import ProviderDep
 from app.models import Conversation, Message
+from app.rag.embeddings import EmbedderDep
 from app.schemas.chat import ChatRequest, ConversationOut, MessageOut
 
 router = APIRouter(tags=["chat"])
@@ -36,12 +37,14 @@ async def chat(
     body: ChatRequest,
     session: SessionDep,
     provider: ProviderDep,
+    embedder: EmbedderDep,
     settings: SettingsDep,
     conversation: Annotated[Conversation, Depends(get_or_create_conversation)],
 ) -> AsyncIterator[ServerSentEvent]:
     async for event in stream_reply(
         session=session,
         provider=provider,
+        embedder=embedder,
         settings=settings,
         conversation=conversation,
         user_text=body.message,

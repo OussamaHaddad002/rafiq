@@ -6,10 +6,13 @@ from fastapi.sse import ServerSentEvent
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agent.prompts import build_system_prompt
+from app.agent.prompts import build_system_prompt, reply_language
 from app.core.config import Settings
 from app.llm.base import ChatMessage, LLMError, LLMProvider, StreamEnd, TextDelta
 from app.models import Conversation, Message
+from app.rag.embeddings import Embedder, EmbeddingError
+from app.rag.retrieve import retrieve
+from app.schemas.chat import SourceOut
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +37,43 @@ def normalize_history(messages: Sequence[ChatMessage]) -> list[ChatMessage]:
     return normalized
 
 
+async def retrieve_sources(
+    *,
+    session: AsyncSession,
+    embedder: Embedder,
+    provider: LLMProvider,
+    settings: Settings,
+    history: Sequence[ChatMessage],
+    user_text: str,
+) -> list[SourceOut]:
+    try:
+        chunks = await retrieve(
+            session=session,
+            embedder=embedder,
+            provider=provider,
+            history=history,
+            user_text=user_text,
+            k=settings.rag_top_k,
+            translate=settings.rag_translate_queries,
+        )
+    except EmbeddingError:
+        # Degrade to "no documents": the model is told to say it doesn't know.
+        logger.warning("retrieval_failed", exc_info=True)
+        return []
+    return [
+        SourceOut(
+            n=n,
+            source=c.source,
+            title=c.title,
+            page=c.page,
+            section=c.section,
+            lang=c.lang,
+            excerpt=c.content,
+        )
+        for n, c in enumerate(chunks, start=1)
+    ]
+
+
 async def load_history(
     session: AsyncSession, conversation_id: uuid.UUID, limit: int
 ) -> list[ChatMessage]:
@@ -54,6 +94,7 @@ async def stream_reply(
     *,
     session: AsyncSession,
     provider: LLMProvider,
+    embedder: Embedder,
     settings: Settings,
     conversation: Conversation,
     user_text: str,
@@ -61,7 +102,8 @@ async def stream_reply(
 ) -> AsyncIterator[ServerSentEvent]:
     """Save the user's message, stream the assistant's reply as SSE events, then save it.
 
-    Events: `meta` (ids) → `delta`* (text chunks) → `done` (message id, usage) | `error`.
+    Events: `meta` (ids) → `sources`? (cited excerpts) → `delta`* (text chunks)
+    → `done` (message id, usage) | `error`.
     """
     user_message = Message(conversation_id=conversation.id, role="user", content=user_text)
     session.add(user_message)
@@ -75,8 +117,18 @@ async def stream_reply(
     end: StreamEnd | None = None
     try:
         history = await load_history(session, conversation.id, settings.chat_history_limit)
+        sources = await retrieve_sources(
+            session=session,
+            embedder=embedder,
+            provider=provider,
+            settings=settings,
+            history=history,
+            user_text=user_text,
+        )
+        if sources:
+            yield ServerSentEvent(event="sources", data=[s.model_dump() for s in sources])
         async for event in provider.stream(
-            system=build_system_prompt(ui_language),
+            system=build_system_prompt(reply_language(user_text, ui_language), sources),
             messages=history,
             max_tokens=settings.llm_max_tokens,
         ):
@@ -98,7 +150,10 @@ async def stream_reply(
         return
 
     assistant_message = Message(
-        conversation_id=conversation.id, role="assistant", content="".join(parts)
+        conversation_id=conversation.id,
+        role="assistant",
+        content="".join(parts),
+        sources=[s.model_dump() for s in sources] or None,
     )
     session.add(assistant_message)
     await session.commit()
@@ -112,6 +167,7 @@ async def stream_reply(
                 "input_tokens": end.usage.input_tokens,
                 "output_tokens": end.usage.output_tokens,
                 "stop_reason": end.stop_reason,
+                "sources": [f"{s.source}#{s.page or s.section}" for s in sources],
             }
         },
     )

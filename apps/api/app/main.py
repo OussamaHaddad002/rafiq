@@ -8,12 +8,15 @@ from app.core.db import engine
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.llm import get_provider
+from app.rag.embeddings import get_embedder
 from app.routes import chat, health
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    get_provider()  # fail fast on a missing API key instead of on the first chat request
+    # Fail fast on a missing API key instead of on the first chat request.
+    get_provider()
+    get_embedder()
     yield
     await engine.dispose()
 

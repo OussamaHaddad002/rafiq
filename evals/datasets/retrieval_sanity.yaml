@@ -1,0 +1,174 @@
+# Retrieval sanity set (M2): checks that the right document is retrieved for each question.
+# `must_contain`: short strings a correct answer contains; each one appears literally in the
+# expected source document. `cross_lingual`: question language differs from the source language.
+
+# ---------- French ----------
+- id: fr-01
+  lang: fr
+  category: same_lang
+  question: "Combien coûte une consultation de cardiologie ?"
+  expected_sources: [tarifs.pdf]
+  must_contain: ["80 DT"]
+
+- id: fr-02
+  lang: fr
+  category: same_lang
+  question: "Faut-il être à jeun pour une prise de sang ?"
+  expected_sources: [preparation-examens.pdf]
+  must_contain: ["12 heures"]
+
+- id: fr-03
+  lang: fr
+  category: same_lang
+  question: "Quels jours consulte le Dr Amira Ben Salah ?"
+  expected_sources: [medecins.pdf]
+  must_contain: ["mercredi", "vendredi"]
+
+- id: fr-04
+  lang: fr
+  category: same_lang
+  question: "Avec la Mutuelle Yasmine, combien je paie pour une consultation ?"
+  expected_sources: [assurance.pdf]
+  must_contain: ["20 %"]
+
+- id: fr-05
+  lang: fr
+  category: same_lang
+  question: "Quels sont les horaires de la clinique pendant le Ramadan ?"
+  expected_sources: [horaires-acces.md]
+  must_contain: ["15h"]
+
+- id: fr-06
+  lang: fr
+  category: cross_lingual
+  question: "Y a-t-il du Wi-Fi gratuit à la clinique ? Quel est le nom du réseau ?"
+  expected_sources: [faq.md]
+  must_contain: ["Rafiq-Patients"]
+
+- id: fr-07
+  lang: fr
+  category: cross_lingual
+  question: "Que se passe-t-il si je ne viens pas à mon rendez-vous sans prévenir ?"
+  expected_sources: [politiques.md]
+  must_contain: ["20 DT"]
+
+- id: fr-08
+  lang: fr
+  category: cross_lingual
+  question: "En combien de temps les résultats d'analyses sont-ils disponibles en ligne ?"
+  expected_sources: [faq.md]
+  must_contain: ["48"]
+
+# ---------- English ----------
+- id: en-01
+  lang: en
+  category: cross_lingual
+  question: "How much is a dentist consultation?"
+  expected_sources: [tarifs.pdf]
+  must_contain: ["50 DT"]
+
+- id: en-02
+  lang: en
+  category: cross_lingual
+  question: "Which doctors speak English?"
+  expected_sources: [medecins.pdf]
+  must_contain: ["Ben Salah", "Jaziri"]
+
+- id: en-03
+  lang: en
+  category: same_lang
+  question: "What happens if I arrive late to my appointment?"
+  expected_sources: [politiques.md]
+  must_contain: ["15 minutes"]
+
+- id: en-04
+  lang: en
+  category: same_lang
+  question: "Do I need to stop iron supplements before a colonoscopy?"
+  expected_sources: [preparation-examens.pdf]
+  must_contain: ["7 days"]
+
+- id: en-05
+  lang: en
+  category: cross_lingual
+  question: "Is there parking at the clinic, and how many spaces?"
+  expected_sources: [horaires-acces.md]
+  must_contain: ["40"]
+
+- id: en-06
+  lang: en
+  category: cross_lingual
+  question: "How long do I have to submit a reimbursement claim to the public health insurance?"
+  expected_sources: [assurance.pdf]
+  must_contain: ["60"]
+
+- id: en-07
+  lang: en
+  category: same_lang
+  question: "Can I get a copy of my medical record, and how long does it take?"
+  expected_sources: [politiques.md]
+  must_contain: ["7 working days"]
+
+- id: en-08
+  lang: en
+  category: cross_lingual
+  question: "What time does the clinic close on Saturday?"
+  expected_sources: [horaires-acces.md]
+  must_contain: ["13"]
+
+# ---------- Arabic (MSA and Tunisian Darija) ----------
+- id: ar-01
+  lang: ar
+  category: cross_lingual
+  question: "بقداش الاستشارة عند طبيب الأسنان؟"
+  expected_sources: [tarifs.pdf]
+  must_contain: ["50"]
+
+- id: ar-02
+  lang: ar
+  category: cross_lingual
+  question: "شنوّة لازمني نعمل قبل تحليل الدم؟"
+  expected_sources: [preparation-examens.pdf]
+  must_contain: ["12"]
+
+- id: ar-03
+  lang: ar
+  category: cross_lingual
+  question: "ما هو رقم مكتب طبيبة القلب أميرة بن صالح؟"
+  expected_sources: [medecins.pdf]
+  must_contain: ["204"]
+
+- id: ar-04
+  lang: ar
+  category: cross_lingual
+  question: "هل تقبلون تأمين Sahha Assurances؟ وكم يدفع المريض من ثمن التحاليل؟"
+  expected_sources: [assurance.pdf]
+  must_contain: ["30"]
+
+- id: ar-05
+  lang: ar
+  category: same_lang
+  question: "هل يوجد واي فاي مجاني في العيادة؟"
+  expected_sources: [faq.md]
+  must_contain: ["Rafiq-Patients"]
+
+- id: ar-06
+  lang: ar
+  category: same_lang
+  question: "كم مرافقًا يُسمح به مع المريض في قاعة الانتظار؟"
+  expected_sources: [faq.md]
+  must_contain: ["مرافق واحد"]
+
+- id: ar-07
+  lang: ar
+  category: same_lang
+  question: "ما هي مواعيد عمل العيادة يوم السبت؟"
+  expected_sources: [horaires-acces.md]
+  must_contain: ["13"]
+
+- id: ar-08
+  lang: ar
+  category: cross_lingual
+  question: "قدّاش نخلّص كان ما جيتش للموعد وما عيّطتلكمش؟"
+  expected_sources: [politiques.md]
+  must_contain: ["20"]
