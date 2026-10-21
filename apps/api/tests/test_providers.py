@@ -42,7 +42,7 @@ def openai_completed(status: str = "completed", incomplete: str | None = None) -
             "id": "resp_1",
             "object": "response",
             "created_at": 0,
-            "model": "gpt-5.4-mini-2026-03-17",
+            "model": "gpt-4o-mini-2024-07-18",
             "status": status,
             "output": [],
             "parallel_tool_calls": True,
@@ -77,9 +77,7 @@ OpenAIFactory = Callable[[httpx2.AsyncClient], OpenAIProvider]
 
 @pytest.fixture
 def make_openai() -> OpenAIFactory:
-    return lambda client: OpenAIProvider(
-        api_key="test", model="gpt-5.4-mini", reasoning_effort="low", http_client=client
-    )
+    return lambda client: OpenAIProvider(api_key="test", model="gpt-4o-mini", http_client=client)
 
 
 async def test_openai_streams_text_and_usage(make_openai: OpenAIFactory) -> None:
@@ -92,7 +90,7 @@ async def test_openai_streams_text_and_usage(make_openai: OpenAIFactory) -> None
         TextDelta("Bon"),
         TextDelta("jour"),
         StreamEnd(
-            model="gpt-5.4-mini-2026-03-17",
+            model="gpt-4o-mini-2024-07-18",
             usage=events[-1].usage,  # type: ignore[union-attr]
             stop_reason="completed",
         ),
@@ -102,12 +100,12 @@ async def test_openai_streams_text_and_usage(make_openai: OpenAIFactory) -> None
     assert (end.usage.input_tokens, end.usage.output_tokens) == (20, 5)
 
     sent = json.loads(captured[0].content)
-    assert sent["model"] == "gpt-5.4-mini"
+    assert sent["model"] == "gpt-4o-mini"
     assert sent["instructions"] == "sys"
     assert sent["input"] == [{"role": "user", "content": "Bonjour"}]
     assert sent["max_output_tokens"] == 100
     assert sent["store"] is False
-    assert sent["reasoning"] == {"effort": "low"}
+    assert "reasoning" not in sent
     assert sent["stream"] is True
 
 
@@ -133,11 +131,14 @@ async def test_openai_http_error_raises(make_openai: OpenAIFactory) -> None:
         await collect(make_openai(mock_client(body, status=401)))
 
 
-async def test_openai_omits_reasoning_when_not_configured() -> None:
+async def test_openai_sends_reasoning_effort_to_reasoning_models() -> None:
     captured: list[httpx2.Request] = []
     client = mock_client(sse(openai_completed()), captured=captured)
-    await collect(OpenAIProvider(api_key="test", model="gpt-4.1-mini", http_client=client))
-    assert "reasoning" not in json.loads(captured[0].content)
+    provider = OpenAIProvider(
+        api_key="test", model="o4-mini", reasoning_effort="low", http_client=client
+    )
+    await collect(provider)
+    assert json.loads(captured[0].content)["reasoning"] == {"effort": "low"}
 
 
 async def test_anthropic_streams_text_and_usage() -> None:
