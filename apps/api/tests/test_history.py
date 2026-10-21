@@ -1,7 +1,10 @@
+import json
+from pathlib import Path
+
 import pytest
 
-from app.agent.chat import normalize_history
-from app.agent.prompts import build_system_prompt, reply_language
+from app.agent.history import normalize_history
+from app.agent.prompts import BUTTON_LABELS, build_system_prompt, reply_language
 from app.llm.base import ChatMessage
 
 
@@ -46,3 +49,17 @@ def test_system_prompt_names_the_reply_language() -> None:
 )
 def test_reply_language(message: str, ui: str, expected: str) -> None:
     assert reply_language(message, ui) == expected
+
+
+def test_button_labels_match_the_card_translations() -> None:
+    """The prompt names the card's buttons; they must say exactly what the UI shows."""
+    locales = Path(__file__).resolve().parents[2] / "web/src/i18n/locales"
+    for language, (confirm, cancel) in BUTTON_LABELS.items():
+        card = json.loads((locales / f"{language}.json").read_text(encoding="utf-8"))["card"]
+        assert (card["confirm"]["book"], card["confirm"]["cancel"]) == (confirm, cancel)
+
+
+def test_prompt_names_buttons_in_the_interface_language() -> None:
+    prompt = build_system_prompt("en", ui_language="fr")
+    assert 'press "Confirmer"' in prompt
+    assert "Reply in English" in prompt

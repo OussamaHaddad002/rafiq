@@ -32,10 +32,9 @@ async def database() -> AsyncIterator[None]:
 @pytest.fixture(autouse=True)
 async def clean_tables() -> AsyncIterator[None]:
     yield
+    tables = ", ".join(table.name for table in Base.metadata.sorted_tables)
     async with engine.begin() as conn:
-        await conn.execute(
-            text("TRUNCATE messages, conversations, chunks, documents RESTART IDENTITY CASCADE")
-        )
+        await conn.execute(text(f"TRUNCATE {tables} RESTART IDENTITY CASCADE"))
     app.dependency_overrides.clear()
 
 
