@@ -114,11 +114,12 @@ The languages are mixed on purpose, so search across languages is actually neede
 | Backend | Python 3.13, FastAPI (native SSE), Pydantic v2, SQLAlchemy 2 (async, asyncpg), Alembic, uv, ruff, mypy (strict), pytest | Familiar stack with modern Python tooling |
 | Database | PostgreSQL + pgvector | One database for relational data, vectors and metrics |
 | Cache / limits | Redis (added in M7, when needed) | Rate limiting |
-| LLM | OpenAI `gpt-5.4-mini` (default, low reasoning effort) via the Responses API; Claude also supported; fake provider for tests. All behind one provider interface, model set by `LLM_MODEL` | Low cost on a small budget; the interface makes model comparison possible |
+| LLM | OpenAI `gpt-4o-mini` via the Responses API; Claude also supported; fake provider for tests. All behind one provider interface, model set by `LLM_MODEL` | Low cost on a small budget; the interface makes model comparison possible |
 | Agent | Hand-written tool-calling loop | No framework magic; every line can be explained in an interview |
-| Document parsing | Docling (fallback: PyMuPDF) | PDF layout, tables, Arabic text |
-| Embeddings | BGE-M3 (local) — *tentative*, a hosted multilingual API if the VPS is too small | Strong multilingual / Arabic retrieval |
-| Reranker | bge-reranker-v2-m3 (or hosted rerank API) | Better precision after retrieval |
+| Document parsing | pypdf (layout mode, table rows kept on one line) + a small Markdown parser | Light; Docling needs PyTorch and gigabytes of models |
+| Embeddings | OpenAI `text-embedding-3-small` (1,536 dims); fake hashed bag-of-words embedder for tests | Multilingual, costs almost nothing, no model to host |
+| Query translation | `gpt-4o-mini` rewrites each question in fr/en/ar before search | Fixes cross-language retrieval (61.5% → 100% hit@5) |
+| Reranker | Not needed for now: every expected document is already in the top 5 | Avoid cost and latency we don't need |
 | STT | Whisper large-v3 (Groq API or faster-whisper) | AR / FR / EN support |
 | TTS | Azure Speech (has ar-TN / ar-MA voices) or ElevenLabs — *to decide* | Natural voices in all 3 languages |
 | Voice transport | WebSocket (push-to-talk); Pipecat for streaming / barge-in later | Simple first, upgrade later |
@@ -220,14 +221,22 @@ Add a row whenever a significant technical decision is made or changed.
 | 11 | 2026-10-20 | Redis postponed until M7 | Nothing needs it yet; avoid unused services |
 | 12 | 2026-10-20 | Migrations run when the API container starts | Simple for a single instance; move to a release step if we scale out |
 | 13 | 2026-10-20 | Same-origin `/api` (Vite proxy in dev, nginx in Docker) | No CORS configuration needed |
-| 14 | 2026-10-20 | Default LLM: OpenAI `gpt-5.4-mini`, reasoning effort `low`, `store=False`; Claude stays available | Only an OpenAI key is available and the credit budget is small. Low reasoning keeps cost and latency down; `store=False` keeps conversations off OpenAI's servers |
+| 14 | 2026-10-20 | ~~Default LLM: OpenAI `gpt-5.4-mini`, reasoning `low`~~. Replaced by #15 | — |
+| 15 | 2026-10-20 | Default LLM: OpenAI `gpt-4o-mini` (no GPT-5 models), `store=False`; the reasoning parameter is only sent to reasoning models | The owner's choice for the credit budget; `store=False` keeps conversations off OpenAI's servers |
+| 16 | 2026-10-20 | Embeddings: OpenAI `text-embedding-3-small` | Multilingual, very cheap for a small knowledge base, nothing to host (BGE-M3 would need PyTorch and about 2 GB of model files) |
+| 17 | 2026-10-20 | pypdf (layout mode) instead of Docling | Docling pulls in PyTorch and large models; layout mode keeps table rows together, which is what our price tables need |
+| 18 | 2026-10-20 | M2 retrieves on every turn; M3 turns retrieval into the `search_docs` tool | Grounded answers now, without the agent loop |
+| 19 | 2026-10-20 | Reranker postponed until measured | Add one only if the sanity set shows ranking problems |
+| 20 | 2026-10-20 | Chunks: ≤1,200 chars, 200 overlap, never across a page or heading; per-chunk language | Precise page citations; overlap keeps table rows whole |
+| 21 | 2026-10-20 | Keyword search on Arabic-normalized text (no diacritics, unified alef/ya/ta marbuta, article removed) with Postgres `simple` config | One index works for all three languages |
+| 23 | 2026-10-20 | Reply language decided in code: the latest message's language when it is clear (Arabic script, or French / English function words), otherwise the interface language | `gpt-4o-mini` was inconsistent on shorthand such as "Mutuelle Yasmine + cardiology" in the middle of an Arabic conversation; a rule in code is predictable and testable |
+| 22 | 2026-10-20 | Query translation: one `gpt-4o-mini` call per question rewrites it as a standalone query in fr/en/ar; search uses one query per language, fused with RRF (`RAG_TRANSLATE_QUERIES`) | Embeddings favour documents in the question's language: cross-lingual hit@5 went from 61.5% to 100% for about $0.0001 per question; it also resolves follow-ups |
 
 ## 11. Open questions
 
 | Question | Options | Decide by |
 |---|---|---|
 | Hosting | Hetzner VPS + Caddy vs. Fly.io vs. Railway | M7 |
-| Embeddings | BGE-M3 local vs. hosted multilingual API | M2 |
 | TTS provider | Azure Speech vs. ElevenLabs | M6 |
 | STT provider | Groq Whisper vs. local faster-whisper vs. Deepgram | M6 |
 | Darija support | Only measure it (WER) vs. try to improve it | M6 |

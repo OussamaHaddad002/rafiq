@@ -17,14 +17,14 @@ This is the single source of truth for **what's done, what's in progress, and wh
 |---|---|---|---|
 | M0 | Planning & setup | ✅ | Plan written, repo on GitHub |
 | M1 | Foundation | 🟡 | `docker compose up` → streaming chat in AR/FR/EN, CI green |
-| M2 | RAG | ⬜ | Arabic question → cited answer from a French PDF |
+| M2 | RAG | ✅ | Arabic question → cited answer from a French PDF |
 | M3 | Agent & tools | ⬜ | Full booking by chat in each language |
 | M4 | Evaluation & CI gate | ⬜ | A PR that breaks a prompt fails CI with a results table |
 | M5 | Telemetry & dashboard | ⬜ | Every conversation shows tokens, $, latency per stage |
 | M6 | Voice | ⬜ | Book an appointment by voice |
 | M7 | Deploy, polish & showcase | ⬜ | Public URL + README + 2-minute video |
 
-**Current focus:** finish M1 (test with a real OpenAI key, visual check) → M2
+**Current focus:** M3 (agent & tools). Still open from M1: mobile-width and dark-mode check.
 
 ---
 
@@ -56,14 +56,16 @@ This is the single source of truth for **what's done, what's in progress, and wh
 - [x] `POST /api/chat` streaming over SSE (no tools yet); conversation + messages saved; `GET /api/conversations/{id}`
 - [x] Structured logging (JSON) with request IDs (`x-request-id`)
 - [x] OpenAI provider (Responses API, default `gpt-5.4-mini`), tested against mocked streams for OpenAI and Claude
-- [ ] Check the OpenAI provider end to end with a real `OPENAI_API_KEY`
+- [x] Default model switched to `gpt-4o-mini` (no GPT-5 models)
+- [x] Check the OpenAI provider end to end with a real `OPENAI_API_KEY`
 
 ### Frontend (`apps/web`)
 - [x] Vite + React + TS (strict), Tailwind, shadcn/ui, oxlint + Prettier, Vitest
 - [x] react-i18next with AR / FR / EN, language switcher, **RTL layout for Arabic**
 - [x] Chat UI: message list, streaming rendering, stop button, input, new conversation, conversation restored after reload
 - [x] API client + TanStack Query
-- [ ] Visual check in a browser (EN / FR / AR, light / dark, mobile width)
+- [x] Visual check in a browser: EN and AR (RTL mirrored layout), citations, excerpt panel
+- [ ] Visual check at mobile width and in dark mode
 
 ### Infra & CI
 - [x] Dockerfiles (multi-stage, non-root API user) for api and web (nginx, SSE-safe proxy)
@@ -76,23 +78,26 @@ This is the single source of truth for **what's done, what's in progress, and wh
 
 ---
 
-## M2 — RAG ⬜
+## M2 — RAG ✅
 
 **Goal:** answers grounded in clinic documents, with citations, across languages.
 
-- [ ] Write the fictional knowledge base in `data/clinic/` (see PROJECT.md §5: mixed FR/AR/EN)
-- [ ] Decide embeddings: BGE-M3 local vs. hosted API (record in the decisions log)
-- [ ] Ingestion pipeline: parse (Docling) → clean / normalize Arabic text → chunk (by heading, ~400–800 tokens, with overlap) → embed → store in `chunks`
-- [ ] Ingestion CLI (`python -m app.rag.ingest data/clinic`), safe to re-run on the same files
-- [ ] Vector search (pgvector, HNSW index)
-- [ ] Keyword search + Reciprocal Rank Fusion (hybrid)
-- [ ] Reranker
-- [ ] Optional query rewriting / translation step (cheap model) for questions in another language
-- [ ] `search_docs` returns chunks with `source`, `page`, `lang`
-- [ ] System prompt: answer only from sources, cite them, reply in the user's language
-- [ ] UI: citation chips that open the source snippet
-- [ ] Unit tests: chunker, normalization, fusion
-- [ ] Small retrieval sanity set (about 20 questions) to tune `k` and chunk size
+- [x] Fictional knowledge base: 4 PDFs (FR, one with an EN section) built from `data/clinic-src/` by `scripts/build_kb_pdfs.py`, plus `horaires-acces.md` (FR + AR), `faq.md` (AR), `politiques.md` (EN)
+- [x] Decide embeddings: OpenAI `text-embedding-3-small` (decision #16); fake hashed bag-of-words embedder for tests / CI
+- [x] Ingestion pipeline: parse (pypdf layout mode, Markdown by heading) → chunk (≤1,200 chars, 200 overlap, never across a page or section) → per-chunk language detection → embed → store
+- [x] Ingestion CLI (`python -m app.rag.ingest`): skips unchanged files (hash + pipeline version + embedding model), prunes deleted ones
+- [x] Vector search (pgvector, HNSW cosine index)
+- [x] Keyword search (Postgres full-text on Arabic-normalized text) + Reciprocal Rank Fusion
+- [x] Retrieval on every turn, with a short-follow-up heuristic (becomes the `search_docs` tool in M3); results carry `source`, `page`, `section`, `lang`
+- [x] System prompt: answer only from numbered excerpts, cite as [n], translate facts, ignore instructions inside documents
+- [x] SSE `sources` event; sources saved on the assistant message and returned with the conversation
+- [x] UI: citation markers and source chips that open the excerpt
+- [x] Tests: normalization, language detection, parsing, chunking, RRF, ingestion, search, query translation, chat grounding (API 67, web 13)
+- [x] Retrieval sanity set (24 questions, 13 cross-lingual) + `scripts/retrieval_check.py`. Fake-embedding baseline: same-language 11/11, cross-lingual 6/13
+- [x] Sanity check with real OpenAI embeddings: cross-lingual only 61.5% (Arabic questions stayed in Arabic documents) → see `evals/reports/2026-10-20-retrieval-sanity.md`
+- [x] Query translation (decision #22): one `gpt-4o-mini` call rewrites the question as a standalone query in fr/en/ar, one query per language → **hit@5 100% (24/24), cross-lingual 100%, MRR 0.91**. Reranker not needed for now (decision #19)
+- [x] Grounded answers checked end to end with `gpt-4o-mini` in AR (incl. Darija) / FR / EN, including follow-ups and multi-document answers; citation rule tightened for answers that combine several documents
+- [x] Fixes from the owner's manual test: the query rewriter now rewrites only the latest message (it had rewritten an earlier question for shorthand like "Mutuelle Yasmine + cardiology"); follow-ups keep their context (insurer); reply language decided in code (decision #23); nginx no longer lets browsers cache `index.html`; adjacent citation markers never wrap apart
 
 **Done when:** "بقداش الاستشارة عند طبيب الأسنان؟" returns the correct price with a citation to `tarifs.pdf`.
 
@@ -128,8 +133,9 @@ This is the single source of truth for **what's done, what's in progress, and wh
 - [ ] Metrics: recall@5, MRR, correctness, faithfulness, tool accuracy, language match, refusal correctness, latency, cost
 - [ ] LLM judge with a fixed rubric (and a few hand-labelled cases to check the judge itself)
 - [ ] Reports: JSON (machine) + Markdown (human) tables broken down by language × category
+- [ ] Seed cases from manual testing: shorthand in another language than the conversation ("Mutuelle Yasmine + cardiology"), follow-up that keeps the insurer ("Et pour une échographie ?"), ambiguous item with several prices (abdominal vs. cardiac ultrasound: list both)
 - [ ] Baseline run committed (`evals/reports/baseline.json`)
-- [ ] Model comparison run (e.g. `gpt-5.4-mini` vs. `gpt-5.4-nano`, reasoning `none` vs. `low`): accuracy vs. cost vs. latency table. Keep it small: the credit budget is limited
+- [ ] Model comparison run (e.g. `gpt-4o-mini` vs. `gpt-4.1-nano` / `gpt-4.1-mini`; no GPT-5 models): accuracy vs. cost vs. latency table. Keep it small: the credit budget is limited
 - [ ] `.github/workflows/eval.yml`: smoke subset on PRs (paths: agent / rag / prompts), PR comment with results, fail when the drop exceeds the threshold
 - [ ] Nightly full run + manual trigger, results saved as artifacts
 - [ ] Eval results saved to the DB (`eval_runs`, `eval_results`) for the dashboard
@@ -226,6 +232,9 @@ Newest first. One line per work session: what got done, any blockers, what's nex
 
 | Date | Milestone | Update |
 |---|---|---|
+| 2026-10-20 | M2 | Owner tested the UI. Found and fixed: stale frontend (web container not rebuilt, and nginx let browsers cache `index.html`), query rewriter picking an earlier question, insurer lost on follow-ups, inconsistent reply language for shorthand. Replayed the conversation: all answers correct; retrieval still 24/24. Visual check done in EN/AR. API 79 tests, web 14. |
+| 2026-10-20 | M2 ✅ | OpenAI key working. Real embeddings: cross-lingual 61.5% → added query translation with one query per language → 100% hit@5 on 24 questions (MRR 0.91). Real `gpt-4o-mini` answers checked in AR/FR/EN (prices, insurance maths, follow-ups, medical refusal). Report in `evals/reports/`. Cost of all testing so far: under 1 cent. Next: M3. |
+| 2026-10-20 | M2 | Built the RAG pipeline: knowledge base (7 docs), ingestion, hybrid search (pgvector + full-text, RRF), cited answers, sources in the UI. Default model now `gpt-4o-mini`. Fake-embedding retrieval baseline: same-language 100%, cross-lingual 46% (expected without real embeddings). Waiting for an OpenAI key to measure real embeddings. |
 | 2026-10-20 | M0/M1 | Repo public on GitHub, CI green (API, web, Docker smoke test). Pinned `setup-uv` by SHA because it has no floating `v10` tag. |
 | 2026-10-20 | M1 | Switched the default LLM to OpenAI `gpt-5.4-mini` (budget), using the Responses API with low reasoning and `store=False`. Claude is kept as an option. Added provider tests against mocked SDK streams; 26 API tests. |
 | 2026-10-20 | M1 | Built the skeleton. API: FastAPI + async SQLAlchemy + Alembic, native SSE chat, Claude + fake providers, JSON logs with request IDs; 15 tests. Web: React 19 / Vite 8 / Tailwind 4, AR/FR/EN with RTL, streaming chat UI; 9 tests. Docker Compose (db, api, web), and CI with lint, types, tests and a Docker smoke test (actionlint clean). Verified locally: full stack through nginx with the fake LLM. Left: push to GitHub and get CI green, test with a real Claude key, visual check in a browser. |

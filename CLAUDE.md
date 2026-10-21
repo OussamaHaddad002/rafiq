@@ -18,7 +18,7 @@ A voice and chat receptionist for a fictional clinic, in Arabic, French and Engl
 
 - Backend: FastAPI, Pydantic v2, SQLAlchemy 2 (async), Alembic, Postgres + pgvector, Redis (from M7). Tooling: uv, ruff, mypy, pytest.
 - Frontend: Vite + React + TypeScript (strict), Tailwind, shadcn/ui, TanStack Query, react-i18next (RTL for Arabic). Tooling: oxlint, Prettier, Vitest.
-- LLM: OpenAI `gpt-5.4-mini` by default (Responses API, low reasoning effort). Claude and a fake provider are also available behind the same interface. The credit budget is small, so keep LLM calls cheap.
+- LLM: OpenAI `gpt-4o-mini` by default (Responses API). Don't use GPT-5 models. Claude and a fake provider are also available behind the same interface. Embeddings: `text-embedding-3-small`. The credit budget is small, so keep API calls cheap and never call real APIs in tests.
 
 ## Conventions
 
@@ -34,6 +34,7 @@ If `uv` isn't on your PATH, `python -m uv` works too.
 ```bash
 # Whole stack (http://localhost:8080). Uses .env; LLM_PROVIDER=fake works without an API key.
 docker compose up -d --build
+docker compose exec api python -m app.rag.ingest  # load the knowledge base
 
 # Database only (for local dev and tests). Creates `rafiq` and `rafiq_test` on first start.
 docker compose up -d db
@@ -44,6 +45,9 @@ uv run alembic upgrade head                       # apply migrations
 uv run alembic revision --autogenerate -m "..."  # new migration after model changes
 uv run uvicorn app.main:app --reload             # http://localhost:8000/docs
 uv run pytest                                     # needs the db container
+uv run python -m app.rag.ingest                   # load data/clinic into the db (re-run safe)
+uv run python -m scripts.retrieval_check          # retrieval hit rate / MRR on the sanity set
+uv run python scripts/build_kb_pdfs.py            # rebuild the KB PDFs from data/clinic-src
 uv run ruff format . && uv run ruff check . && uv run mypy app tests
 
 # Web (apps/web): dev server proxies /api to :8000
