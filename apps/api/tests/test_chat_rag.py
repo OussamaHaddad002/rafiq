@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from app.core.config import Settings, get_settings
 from app.core.db import SessionFactory
 from app.llm import get_provider
-from app.llm.base import ChatMessage, StreamEnd, StreamEvent, TextDelta, Usage
+from app.llm.base import ChatMessage, StreamEnd, StreamEvent, TextDelta, ToolSpec, Usage
 from app.main import app
 from app.rag.embeddings import EmbeddingError, FakeEmbedder, get_embedder
 from app.rag.ingest import ingest_directory
@@ -37,7 +37,12 @@ class CapturingProvider:
         return system
 
     async def stream(
-        self, *, system: str, messages: Sequence[ChatMessage], max_tokens: int
+        self,
+        *,
+        system: str,
+        messages: Sequence[ChatMessage],
+        max_tokens: int,
+        tools: Sequence[ToolSpec] = (),
     ) -> AsyncIterator[StreamEvent]:
         self.systems.append(system)
         reply = self.translation if system == QUERY_PROMPT else "La cardiologie coûte 80 DT [1]."

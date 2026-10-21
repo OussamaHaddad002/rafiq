@@ -1,17 +1,26 @@
 from collections.abc import AsyncIterator, Sequence
 
-from app.llm.base import ChatMessage, StreamEnd, StreamEvent, TextDelta, Usage
+from app.llm.base import ChatMessage, StreamEnd, StreamEvent, TextDelta, ToolSpec, Usage
 
 
 class FakeProvider:
-    """Deterministic echo provider for tests, CI and running without an API key."""
+    """Deterministic echo provider for tests, CI and running without an API key.
+
+    It never calls tools; tests that need tool calls script them with their own provider.
+    """
 
     model = "fake-echo"
 
     async def stream(
-        self, *, system: str, messages: Sequence[ChatMessage], max_tokens: int
+        self,
+        *,
+        system: str,
+        messages: Sequence[ChatMessage],
+        max_tokens: int,
+        tools: Sequence[ToolSpec] = (),
     ) -> AsyncIterator[StreamEvent]:
-        reply = f"Echo ({len(messages)} messages in context): {messages[-1].content}"
+        last_user = next((m.content for m in reversed(messages) if m.role == "user"), "")
+        reply = f"Echo ({len(messages)} messages in context): {last_user}"
         for start in range(0, len(reply), 8):
             yield TextDelta(reply[start : start + 8])
         yield StreamEnd(

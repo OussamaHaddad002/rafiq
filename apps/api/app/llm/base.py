@@ -1,14 +1,36 @@
 from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
-Role = Literal["user", "assistant"]
+Role = Literal["user", "assistant", "tool"]
+
+
+@dataclass(frozen=True, slots=True)
+class ToolCall:
+    id: str
+    name: str
+    arguments: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class ToolSpec:
+    name: str
+    description: str
+    parameters: dict[str, Any]  # JSON Schema of the arguments
 
 
 @dataclass(frozen=True, slots=True)
 class ChatMessage:
+    """One provider-neutral conversation item.
+
+    - user / assistant: `content` text; an assistant item may also carry `tool_calls`
+    - tool: the JSON result of the call `tool_call_id`, in `content`
+    """
+
     role: Role
-    content: str
+    content: str = ""
+    tool_calls: tuple[ToolCall, ...] = ()
+    tool_call_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +49,7 @@ class StreamEnd:
     model: str
     usage: Usage
     stop_reason: str | None
+    tool_calls: tuple[ToolCall, ...] = ()
 
 
 StreamEvent = TextDelta | StreamEnd
@@ -37,10 +60,19 @@ class LLMError(Exception):
 
 
 class LLMProvider(Protocol):
-    """Streams one assistant reply: zero or more TextDelta events, then exactly one StreamEnd."""
+    """Streams one assistant reply: zero or more TextDelta events, then exactly one StreamEnd.
+
+    When `tools` are given, the model may answer with tool calls (in `StreamEnd.tool_calls`)
+    instead of, or after, text.
+    """
 
     def stream(
-        self, *, system: str, messages: Sequence[ChatMessage], max_tokens: int
+        self,
+        *,
+        system: str,
+        messages: Sequence[ChatMessage],
+        max_tokens: int,
+        tools: Sequence[ToolSpec] = (),
     ) -> AsyncIterator[StreamEvent]: ...
 
 

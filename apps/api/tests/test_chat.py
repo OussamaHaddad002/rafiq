@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator, Sequence
 from httpx import AsyncClient
 
 from app.llm import get_provider
-from app.llm.base import ChatMessage, LLMError, StreamEvent, TextDelta
+from app.llm.base import ChatMessage, LLMError, StreamEvent, TextDelta, ToolSpec
 from app.main import app
 from tests.conftest import SSEEvent, parse_sse
 
@@ -70,7 +70,12 @@ async def test_unsupported_language_is_rejected(client: AsyncClient) -> None:
 
 class FailingProvider:
     async def stream(
-        self, *, system: str, messages: Sequence[ChatMessage], max_tokens: int
+        self,
+        *,
+        system: str,
+        messages: Sequence[ChatMessage],
+        max_tokens: int,
+        tools: Sequence[ToolSpec] = (),
     ) -> AsyncIterator[StreamEvent]:
         yield TextDelta("partial ")
         raise LLMError("The assistant is temporarily unavailable. Please try again.")

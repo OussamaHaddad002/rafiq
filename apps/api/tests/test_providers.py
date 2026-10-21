@@ -6,10 +6,22 @@ from typing import Any
 
 import httpx2
 import pytest
+from openai.types.responses import ResponseFunctionToolCall
 
 from app.llm.anthropic_provider import AnthropicProvider
-from app.llm.base import ChatMessage, LLMError, LLMProvider, StreamEnd, StreamEvent, TextDelta
-from app.llm.openai_provider import OpenAIProvider
+from app.llm.anthropic_provider import to_messages as anthropic_to_messages
+from app.llm.base import (
+    ChatMessage,
+    LLMError,
+    LLMProvider,
+    StreamEnd,
+    StreamEvent,
+    TextDelta,
+    ToolCall,
+    ToolSpec,
+)
+from app.llm.openai_provider import OpenAIProvider, parse_tool_call
+from app.llm.openai_provider import to_input as openai_to_input
 
 MESSAGES = [ChatMessage("user", "Bonjour")]
 
@@ -182,3 +194,150 @@ async def test_anthropic_streams_text_and_usage() -> None:
     assert isinstance(end, StreamEnd)
     assert (end.model, end.stop_reason) == ("claude-sonnet-5-5", "end_turn")
     assert (end.usage.input_tokens, end.usage.output_tokens) == (20, 5)
+
+
+# --- tool calling -------------------------------------------------------------------------
+
+TOOLS = [ToolSpec("list_doctors", "List doctors.", {"type": "object", "properties": {}})]
+CALL = ToolCall("call_abc", "list_doctors", {"specialty": "cardiology"})
+HISTORY = [
+    ChatMessage("user", "Cardiologues ?"),
+    ChatMessage("assistant", tool_calls=(CALL,)),
+    ChatMessage("tool", '{"doctors": []}', tool_call_id="call_abc"),
+    ChatMessage("assistant", "Aucun."),
+    ChatMessage("user", "Merci"),
+]
+
+
+def test_openai_history_maps_to_function_call_items() -> None:
+    assert openai_to_input(HISTORY) == [
+        {"role": "user", "content": "Cardiologues ?"},
+        {
+            "type": "function_call",
+            "call_id": "call_abc",
+            "name": "list_doctors",
+            "arguments": '{"specialty": "cardiology"}',
+        },
+        {"type": "function_call_output", "call_id": "call_abc", "output": '{"doctors": []}'},
+        {"role": "assistant", "content": "Aucun."},
+        {"role": "user", "content": "Merci"},
+    ]
+
+
+async def test_openai_returns_tool_calls_from_the_response(make_openai: OpenAIFactory) -> None:
+    completed = openai_completed()
+    completed["response"]["output"] = [
+        {
+            "type": "function_call",
+            "id": "fc_1",
+            "call_id": "call_abc",
+            "name": "list_doctors",
+            "arguments": '{"specialty": "cardiology"}',
+            "status": "completed",
+        }
+    ]
+    captured: list[httpx2.Request] = []
+    provider = make_openai(mock_client(sse(completed), captured=captured))
+
+    events = [
+        e
+        async for e in provider.stream(system="sys", messages=HISTORY, max_tokens=100, tools=TOOLS)
+    ]
+
+    end = events[-1]
+    assert isinstance(end, StreamEnd)
+    assert end.tool_calls == (CALL,)
+    sent = json.loads(captured[0].content)
+    assert sent["tools"] == [
+        {
+            "type": "function",
+            "name": "list_doctors",
+            "description": "List doctors.",
+            "parameters": {"type": "object", "properties": {}},
+            "strict": False,
+        }
+    ]
+
+
+def test_openai_malformed_arguments_reach_the_tool_for_validation() -> None:
+    item = ResponseFunctionToolCall(
+        type="function_call", call_id="c", name="list_doctors", arguments="{not json"
+    )
+    assert parse_tool_call(item).arguments == {"_unparsed": "{not json"}
+
+
+def test_anthropic_merges_tool_results_with_the_next_user_turn() -> None:
+    history = [*HISTORY[:3], ChatMessage("user", "Et demain ?")]
+    assert anthropic_to_messages(history) == [
+        {"role": "user", "content": [{"type": "text", "text": "Cardiologues ?"}]},
+        {
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "call_abc",
+                    "name": "list_doctors",
+                    "input": {"specialty": "cardiology"},
+                }
+            ],
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "tool_result", "tool_use_id": "call_abc", "content": '{"doctors": []}'},
+                {"type": "text", "text": "Et demain ?"},
+            ],
+        },
+    ]
+
+
+async def test_anthropic_returns_tool_calls_from_the_stream() -> None:
+    body = sse(
+        {
+            "type": "message_start",
+            "message": {
+                "id": "msg_1",
+                "type": "message",
+                "role": "assistant",
+                "model": "claude-sonnet-5-5",
+                "content": [],
+                "stop_reason": None,
+                "stop_sequence": None,
+                "usage": {"input_tokens": 30, "output_tokens": 1},
+            },
+        },
+        {
+            "type": "content_block_start",
+            "index": 0,
+            "content_block": {
+                "type": "tool_use",
+                "id": "call_abc",
+                "name": "list_doctors",
+                "input": {},
+            },
+        },
+        {
+            "type": "content_block_delta",
+            "index": 0,
+            "delta": {"type": "input_json_delta", "partial_json": '{"specialty": "cardiology"}'},
+        },
+        {"type": "content_block_stop", "index": 0},
+        {
+            "type": "message_delta",
+            "delta": {"stop_reason": "tool_use", "stop_sequence": None},
+            "usage": {"output_tokens": 12},
+        },
+        {"type": "message_stop"},
+    )
+    provider = AnthropicProvider(
+        api_key="test", model="claude-sonnet-5-5", http_client=mock_client(body)
+    )
+
+    events = [
+        e
+        async for e in provider.stream(system="sys", messages=MESSAGES, max_tokens=100, tools=TOOLS)
+    ]
+
+    end = events[-1]
+    assert isinstance(end, StreamEnd)
+    assert (end.stop_reason, end.tool_calls) == ("tool_use", (CALL,))
