@@ -25,5 +25,56 @@
     "sources": "Sources",
     "page": "p. {{page}}",
     "citation": "Afficher la source {{n}}"
+  },
+  "tools": {
+    "list_doctors": "Recherche des médecins",
+    "check_availability": "Vérification des disponibilités",
+    "book_appointment": "Préparation du rendez-vous",
+    "lookup_appointment": "Recherche du rendez-vous",
+    "reschedule_appointment": "Préparation du changement",
+    "cancel_appointment": "Préparation de l'annulation",
+    "handoff_to_human": "Demande de rappel par la réception"
+  },
+  "specialties": {
+    "general_medicine": "Médecine générale",
+    "cardiology": "Cardiologie",
+    "dentistry": "Médecine dentaire",
+    "pediatrics": "Pédiatrie",
+    "dermatology": "Dermatologie",
+    "gynecology": "Gynécologie",
+    "ophthalmology": "Ophtalmologie"
+  },
+  "card": {
+    "title": {
+      "book": "Confirmez votre rendez-vous",
+      "reschedule": "Confirmez le nouvel horaire",
+      "cancel": "Annuler ce rendez-vous ?"
+    },
+    "doctor": "Médecin",
+    "when": "Date et heure",
+    "previous": "Horaire actuel",
+    "newTime": "Nouvel horaire",
+    "patient": "Patient",
+    "phone": "Téléphone",
+    "code": "Code de réservation",
+    "lateFee": "Une annulation moins de 24 h avant coûte {{fee}} DT.",
+    "confirm": {
+      "book": "Confirmer",
+      "reschedule": "Confirmer",
+      "cancel": "Oui, annuler"
+    },
+    "decline": {
+      "book": "Pas maintenant",
+      "reschedule": "Garder l'horaire actuel",
+      "cancel": "Garder le rendez-vous"
+    },
+    "status": {
+      "submitting": "Envoi…",
+      "confirmed": "Confirmé",
+      "declined": "Non confirmé",
+      "expired": "Cette demande a expiré. Redemandez à Rafiq.",
+      "failed": "Cette demande n'a pas pu aboutir.",
+      "superseded": "Remplacée par une demande plus récente."
+    }
   }
 }

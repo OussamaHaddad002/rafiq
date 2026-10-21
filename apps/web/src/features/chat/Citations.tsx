@@ -6,6 +6,35 @@ import type { Source } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { CITATION } from './citationMarkers'
 
+interface CitedTextProps {
+  text: string
+  sources: Source[]
+  active: number | null
+  onCite: (n: number) => void
+}
+
+/**
+ * Assistant text: **bold** spans (the model uses them despite the prompt) and citations.
+ * Rendered as React elements, never as HTML, so model output cannot inject markup.
+ */
+export function ReplyText(props: CitedTextProps) {
+  // With a capture group, split() puts the bold parts at odd indexes.
+  const parts = props.text.split(/\*\*(.+?)\*\*/g)
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <strong key={i} className="font-semibold">
+            <CitedText {...props} text={part} />
+          </strong>
+        ) : (
+          <CitedText key={i} {...props} text={part} />
+        ),
+      )}
+    </>
+  )
+}
+
 /** Text with [n] markers that match a source turned into small buttons. */
 export function CitedText({
   text,

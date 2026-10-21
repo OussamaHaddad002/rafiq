@@ -25,5 +25,56 @@
     "sources": "المصادر",
     "page": "ص. {{page}}",
     "citation": "عرض المصدر {{n}}"
+  },
+  "tools": {
+    "list_doctors": "البحث عن الأطباء",
+    "check_availability": "التحقق من المواعيد المتاحة",
+    "book_appointment": "تحضير الحجز",
+    "lookup_appointment": "البحث عن موعدك",
+    "reschedule_appointment": "تحضير تغيير الموعد",
+    "cancel_appointment": "تحضير الإلغاء",
+    "handoff_to_human": "طلب اتصال من موظف الاستقبال"
+  },
+  "specialties": {
+    "general_medicine": "الطب العام",
+    "cardiology": "أمراض القلب",
+    "dentistry": "طب الأسنان",
+    "pediatrics": "طب الأطفال",
+    "dermatology": "الأمراض الجلدية",
+    "gynecology": "أمراض النساء",
+    "ophthalmology": "طب العيون"
+  },
+  "card": {
+    "title": {
+      "book": "تأكيد موعدك",
+      "reschedule": "تأكيد الموعد الجديد",
+      "cancel": "إلغاء هذا الموعد؟"
+    },
+    "doctor": "الطبيب",
+    "when": "التاريخ والوقت",
+    "previous": "الموعد الحالي",
+    "newTime": "الموعد الجديد",
+    "patient": "المريض",
+    "phone": "الهاتف",
+    "code": "رمز الحجز",
+    "lateFee": "الإلغاء قبل أقل من 24 ساعة يكلّف {{fee}} دينار.",
+    "confirm": {
+      "book": "تأكيد",
+      "reschedule": "تأكيد",
+      "cancel": "نعم، ألغِ الموعد"
+    },
+    "decline": {
+      "book": "ليس الآن",
+      "reschedule": "الإبقاء على الموعد الحالي",
+      "cancel": "الإبقاء على الموعد"
+    },
+    "status": {
+      "submitting": "جارٍ الإرسال…",
+      "confirmed": "تم التأكيد",
+      "declined": "لم يتم التأكيد",
+      "expired": "انتهت صلاحية هذا الطلب. اطلب من رفيق مرة أخرى.",
+      "failed": "تعذّر إتمام هذا الطلب.",
+      "superseded": "تم استبداله بطلب أحدث."
+    }
   }
 }

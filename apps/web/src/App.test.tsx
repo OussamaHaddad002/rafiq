@@ -105,3 +105,84 @@ describe('stale conversation', () => {
     expect(JSON.parse(String(init?.body)).conversation_id).toBeNull()
   })
 })
+
+describe('booking', () => {
+  it('shows tool activity, then a card whose Confirm button books the appointment', async () => {
+    const pendingCard = {
+      action_id: 'action-1',
+      kind: 'book',
+      status: 'pending',
+      expires_at: '2026-10-21T08:15:00Z',
+      result: null,
+      details: {
+        doctor: 'Dr Amira Ben Salah',
+        specialty: 'cardiology',
+        starts_at: '2026-10-23T10:00:00+01:00',
+        patient_name: 'Salma Ben Ali',
+        patient_phone: '+216•••••123',
+      },
+    }
+    let releaseFirstReply: () => void = () => {}
+    const firstReplyReleased = new Promise<void>((resolve) => (releaseFirstReply = resolve))
+    const chatBodies: unknown[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) !== '/api/chat') return Response.json({ status: 'ok', database: 'ok' })
+        chatBodies.push(JSON.parse(String(init?.body)))
+        if (chatBodies.length === 1) {
+          const encoder = new TextEncoder()
+          const body = new ReadableStream<Uint8Array>({
+            async start(controller) {
+              controller.enqueue(
+                encoder.encode(
+                  sseEvent('meta', { conversation_id: CONVERSATION_ID, user_message_id: 1 }) +
+                    sseEvent('tool', { id: 't1', name: 'check_availability', status: 'running' }),
+                ),
+              )
+              await firstReplyReleased
+              controller.enqueue(
+                encoder.encode(
+                  sseEvent('tool', { id: 't1', name: 'check_availability', status: 'done' }) +
+                    sseEvent('confirmation', pendingCard) +
+                    sseEvent('delta', { text: 'Please press Confirm.' }) +
+                    sseEvent('done', { message_id: 2, model: 'm', usage: {} }),
+                ),
+              )
+              controller.close()
+            },
+          })
+          return new Response(body, { headers: { 'content-type': 'text/event-stream' } })
+        }
+        return streamResponse([
+          sseEvent('meta', { conversation_id: CONVERSATION_ID, user_message_id: 3 }),
+          sseEvent('action_result', {
+            action_id: 'action-1',
+            kind: 'book',
+            decision: 'confirm',
+            status: 'confirmed',
+            booking_code: 'RFQ-7K3PX',
+          }),
+          sseEvent('delta', { text: 'Booked! Your code is RFQ-7K3PX.' }),
+          sseEvent('done', { message_id: 4, model: 'm', usage: {} }),
+        ])
+      }),
+    )
+    renderApp()
+
+    await userEvent.type(screen.getByRole('textbox'), 'Cardiologist on Friday{Enter}')
+    expect(await screen.findByText('Checking availability…')).toBeInTheDocument()
+    releaseFirstReply()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+
+    expect(await screen.findByText('Booked! Your code is RFQ-7K3PX.')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('ConfirmedRFQ-7K3PX')
+    expect(chatBodies[1]).toEqual({
+      message: 'Confirm',
+      language: 'en',
+      conversation_id: CONVERSATION_ID,
+      action: { id: 'action-1', decision: 'confirm' },
+    })
+  })
+})

@@ -2,15 +2,27 @@ import { HeartPulse } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { Decision } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import { CitedText, SourceList } from './Citations'
+import { ReplyText, SourceList } from './Citations'
 import { citedNumbers } from './citationMarkers'
-import type { UiMessage } from './useChat'
+import { ConfirmationCard } from './ConfirmationCard'
+import { ToolActivity } from './ToolActivity'
+import type { CardState, UiMessage } from './useChat'
 
-export function MessageBubble({ message }: { message: UiMessage }) {
+interface Props {
+  message: UiMessage
+  /** Pressing Confirm / Cancel on this message's card. */
+  onRespond?: (card: CardState, decision: Decision, label: string) => void
+  /** Cards cannot be answered while another reply is streaming. */
+  busy?: boolean
+}
+
+export function MessageBubble({ message, onRespond, busy = false }: Props) {
   const { t } = useTranslation()
   const isUser = message.role === 'user'
-  const isWaiting = message.status === 'streaming' && message.content === ''
+  const isStreaming = message.status === 'streaming'
+  const isWaiting = isStreaming && message.content === ''
   const [activeSource, setActiveSource] = useState<number | null>(null)
   const toggleSource = (n: number) => setActiveSource((current) => (current === n ? null : n))
 
@@ -26,9 +38,10 @@ export function MessageBubble({ message }: { message: UiMessage }) {
       )}
       <div className={cn('flex max-w-[85%] flex-col gap-1', isUser && 'items-end')}>
         <span className="sr-only">{isUser ? t('chat.you') : t('chat.assistant')}</span>
+        {isStreaming && <ToolActivity tools={message.tools} />}
         {isWaiting ? (
           <TypingDots />
-        ) : (
+        ) : message.content === '' ? null : (
           <div
             // dir="auto" lets an Arabic message render RTL inside a French UI, and vice versa.
             dir="auto"
@@ -42,7 +55,7 @@ export function MessageBubble({ message }: { message: UiMessage }) {
             {isUser ? (
               message.content
             ) : (
-              <CitedText
+              <ReplyText
                 text={message.content}
                 sources={message.sources}
                 active={activeSource}
@@ -60,6 +73,15 @@ export function MessageBubble({ message }: { message: UiMessage }) {
             cited={citedNumbers(message.content, message.sources)}
             active={activeSource}
             onToggle={toggleSource}
+          />
+        )}
+        {message.confirmation && (
+          <ConfirmationCard
+            card={message.confirmation}
+            disabled={busy || !onRespond}
+            onRespond={(decision, label) =>
+              message.confirmation && onRespond?.(message.confirmation, decision, label)
+            }
           />
         )}
         {message.status === 'error' && (

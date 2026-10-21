@@ -14,11 +14,55 @@ export interface Source {
   excerpt: string
 }
 
+export type ActionKind = 'book' | 'reschedule' | 'cancel'
+export type ActionStatus =
+  'pending' | 'confirmed' | 'declined' | 'expired' | 'failed' | 'superseded'
+export type Decision = 'confirm' | 'decline'
+
+/** What a Confirm / Cancel card shows. Times are ISO strings with the clinic's UTC offset. */
+export interface ActionDetails {
+  doctor: string
+  specialty: string
+  starts_at: string
+  previous_starts_at?: string
+  patient_name: string
+  patient_phone: string
+  booking_code?: string
+  late_cancellation_fee_dt?: number
+}
+
+export interface Confirmation {
+  action_id: string
+  kind: ActionKind
+  status: ActionStatus
+  details: ActionDetails
+  expires_at: string
+  result: { booking_code?: string; error?: string; message?: string } | null
+}
+
+export interface ActionResult {
+  action_id: string
+  kind: ActionKind
+  decision: Decision
+  status: ActionStatus
+  booking_code?: string
+  error?: string
+  message?: string
+}
+
+export interface ToolActivity {
+  id: string
+  name: string
+  status: 'running' | 'done' | 'error'
+}
+
 export interface MessageDTO {
   id: number
   role: Role
   content: string
   sources: Source[] | null
+  confirmation: Confirmation | null
+  action_result: ActionResult | null
   created_at: string
 }
 
@@ -41,8 +85,11 @@ export interface Usage {
 
 export type ChatStreamEvent =
   | { type: 'meta'; conversationId: string; userMessageId: number }
+  | { type: 'action_result'; result: ActionResult }
   | { type: 'sources'; sources: Source[] }
   | { type: 'delta'; text: string }
+  | { type: 'tool'; tool: ToolActivity }
+  | { type: 'confirmation'; confirmation: Confirmation }
   | { type: 'done'; messageId: number; model: string; usage: Usage }
   | { type: 'error'; message: string }
 
@@ -84,6 +131,8 @@ export interface ChatRequest {
   message: string
   language: Language
   conversationId: string | null
+  /** Set when the message is the patient pressing Confirm / Cancel on a card. */
+  action?: { id: string; decision: Decision }
 }
 
 export async function* streamChat(
@@ -97,6 +146,7 @@ export async function* streamChat(
       message: request.message,
       language: request.language,
       conversation_id: request.conversationId,
+      ...(request.action ? { action: request.action } : {}),
     }),
     signal,
   })
@@ -112,11 +162,20 @@ export async function* streamChat(
           userMessageId: payload.user_message_id,
         }
         break
+      case 'action_result':
+        yield { type: 'action_result', result: payload }
+        break
       case 'sources':
         yield { type: 'sources', sources: payload }
         break
       case 'delta':
         yield { type: 'delta', text: payload.text }
+        break
+      case 'tool':
+        yield { type: 'tool', tool: payload }
+        break
+      case 'confirmation':
+        yield { type: 'confirmation', confirmation: payload }
         break
       case 'done':
         yield {

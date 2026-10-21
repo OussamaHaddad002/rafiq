@@ -25,5 +25,56 @@
     "sources": "Sources",
     "page": "p. {{page}}",
     "citation": "Show source {{n}}"
+  },
+  "tools": {
+    "list_doctors": "Looking up doctors",
+    "check_availability": "Checking availability",
+    "book_appointment": "Preparing your booking",
+    "lookup_appointment": "Finding your appointment",
+    "reschedule_appointment": "Preparing the change",
+    "cancel_appointment": "Preparing the cancellation",
+    "handoff_to_human": "Asking a receptionist to call you"
+  },
+  "specialties": {
+    "general_medicine": "General medicine",
+    "cardiology": "Cardiology",
+    "dentistry": "Dentistry",
+    "pediatrics": "Paediatrics",
+    "dermatology": "Dermatology",
+    "gynecology": "Gynaecology",
+    "ophthalmology": "Ophthalmology"
+  },
+  "card": {
+    "title": {
+      "book": "Confirm your appointment",
+      "reschedule": "Confirm the new time",
+      "cancel": "Cancel this appointment?"
+    },
+    "doctor": "Doctor",
+    "when": "Date and time",
+    "previous": "Current time",
+    "newTime": "New time",
+    "patient": "Patient",
+    "phone": "Phone",
+    "code": "Booking code",
+    "lateFee": "Cancelling less than 24 hours before costs {{fee}} DT.",
+    "confirm": {
+      "book": "Confirm",
+      "reschedule": "Confirm",
+      "cancel": "Yes, cancel it"
+    },
+    "decline": {
+      "book": "Not now",
+      "reschedule": "Keep current time",
+      "cancel": "Keep it"
+    },
+    "status": {
+      "submitting": "Sending…",
+      "confirmed": "Confirmed",
+      "declined": "Not confirmed",
+      "expired": "This request expired. Ask Rafiq again.",
+      "failed": "This request couldn't be completed.",
+      "superseded": "Replaced by a newer request."
+    }
   }
 }

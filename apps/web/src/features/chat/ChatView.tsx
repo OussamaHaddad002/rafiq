@@ -24,7 +24,12 @@ export function ChatView({ chat }: { chat: ChatController }) {
         ) : (
           <div className="flex flex-col gap-5 py-6">
             {chat.messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <MessageBubble
+                key={message.id}
+                message={message}
+                busy={chat.isStreaming}
+                onRespond={(card, decision, label) => void chat.respond(card, decision, label)}
+              />
             ))}
             <div ref={endRef} />
           </div>

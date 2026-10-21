@@ -38,7 +38,15 @@ const sources: Source[] = [
 ]
 
 function assistant(content: string): UiMessage {
-  return { id: 'a1', role: 'assistant', content, sources, status: 'done' }
+  return {
+    id: 'a1',
+    role: 'assistant',
+    content,
+    sources,
+    tools: [],
+    confirmation: null,
+    status: 'done',
+  }
 }
 
 describe('citedNumbers', () => {
@@ -85,5 +93,16 @@ describe('MessageBubble citations', () => {
 
     expect(screen.getByText('Bonjour [7] !')).toBeInTheDocument()
     expect(screen.queryByText('Sources')).not.toBeInTheDocument()
+  })
+})
+
+describe('MessageBubble formatting', () => {
+  it('renders **bold** as strong text, citations included, without raw asterisks', () => {
+    render(<MessageBubble message={assistant('Code : **RFQ-7K3PX [1]** merci')} />)
+
+    const strong = screen.getByText('RFQ-7K3PX', { selector: 'strong *, strong', exact: false })
+    expect(strong.closest('strong')).not.toBeNull()
+    expect(screen.queryByText(/\*\*/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show source 1' })).toBeInTheDocument()
   })
 })
