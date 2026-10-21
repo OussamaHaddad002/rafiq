@@ -3,10 +3,22 @@ import { readSSE } from '@/lib/sse'
 export type Language = 'ar' | 'fr' | 'en'
 export type Role = 'user' | 'assistant'
 
+/** A knowledge-base excerpt given to the model; `n` is its citation number, as in [n]. */
+export interface Source {
+  n: number
+  source: string
+  title: string
+  page: number | null
+  section: string | null
+  lang: string
+  excerpt: string
+}
+
 export interface MessageDTO {
   id: number
   role: Role
   content: string
+  sources: Source[] | null
   created_at: string
 }
 
@@ -29,6 +41,7 @@ export interface Usage {
 
 export type ChatStreamEvent =
   | { type: 'meta'; conversationId: string; userMessageId: number }
+  | { type: 'sources'; sources: Source[] }
   | { type: 'delta'; text: string }
   | { type: 'done'; messageId: number; model: string; usage: Usage }
   | { type: 'error'; message: string }
@@ -98,6 +111,9 @@ export async function* streamChat(
           conversationId: payload.conversation_id,
           userMessageId: payload.user_message_id,
         }
+        break
+      case 'sources':
+        yield { type: 'sources', sources: payload }
         break
       case 'delta':
         yield { type: 'delta', text: payload.text }

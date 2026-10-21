@@ -21,6 +21,9 @@
     "error": "Something went wrong. Please try again.",
     "disclaimer": "Demo of a fictional clinic. Rafiq is an AI assistant and does not give medical advice.",
     "assistant": "Rafiq",
-    "you": "You"
+    "you": "You",
+    "sources": "Sources",
+    "page": "p. {{page}}",
+    "citation": "Show source {{n}}"
   }
 }

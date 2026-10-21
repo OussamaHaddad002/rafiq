@@ -1,13 +1,18 @@
 import { HeartPulse } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
+import { CitedText, SourceList } from './Citations'
+import { citedNumbers } from './citationMarkers'
 import type { UiMessage } from './useChat'
 
 export function MessageBubble({ message }: { message: UiMessage }) {
   const { t } = useTranslation()
   const isUser = message.role === 'user'
   const isWaiting = message.status === 'streaming' && message.content === ''
+  const [activeSource, setActiveSource] = useState<number | null>(null)
+  const toggleSource = (n: number) => setActiveSource((current) => (current === n ? null : n))
 
   return (
     <div className={cn('flex gap-3', isUser && 'flex-row-reverse')}>
@@ -34,11 +39,28 @@ export function MessageBubble({ message }: { message: UiMessage }) {
                 : 'rounded-ss-sm border bg-card',
             )}
           >
-            {message.content}
+            {isUser ? (
+              message.content
+            ) : (
+              <CitedText
+                text={message.content}
+                sources={message.sources}
+                active={activeSource}
+                onCite={toggleSource}
+              />
+            )}
             {message.status === 'streaming' && (
               <span className="ms-0.5 inline-block h-4 w-0.5 translate-y-0.5 animate-pulse bg-current" />
             )}
           </div>
+        )}
+        {!isUser && (
+          <SourceList
+            sources={message.sources}
+            cited={citedNumbers(message.content, message.sources)}
+            active={activeSource}
+            onToggle={toggleSource}
+          />
         )}
         {message.status === 'error' && (
           <p role="alert" className="px-1 text-sm text-destructive">

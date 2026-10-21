@@ -21,6 +21,9 @@
     "error": "Une erreur est survenue. Veuillez réessayer.",
     "disclaimer": "Démo d'une clinique fictive. Rafiq est un assistant IA et ne donne pas d'avis médical.",
     "assistant": "Rafiq",
-    "you": "Vous"
+    "you": "Vous",
+    "sources": "Sources",
+    "page": "p. {{page}}",
+    "citation": "Afficher la source {{n}}"
   }
 }

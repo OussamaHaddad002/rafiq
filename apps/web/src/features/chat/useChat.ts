@@ -1,12 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 
-import { ApiError, getConversation, streamChat, type Language, type Role } from '@/lib/api'
+import {
+  ApiError,
+  getConversation,
+  streamChat,
+  type Language,
+  type Role,
+  type Source,
+} from '@/lib/api'
 
 export interface UiMessage {
   id: string
   role: Role
   content: string
+  sources: Source[]
   status: 'done' | 'streaming' | 'error'
 }
 
@@ -61,6 +69,7 @@ export function useChat(language: Language) {
       id: String(m.id),
       role: m.role,
       content: m.content,
+      sources: m.sources ?? [],
       status: 'done',
     })) ?? []
   const messages = live ?? restored
@@ -79,8 +88,8 @@ export function useChat(language: Language) {
 
     setLive((prev) => [
       ...(prev ?? restored),
-      { id: crypto.randomUUID(), role: 'user', content: message, status: 'done' },
-      { id: assistantId, role: 'assistant', content: '', status: 'streaming' },
+      { id: crypto.randomUUID(), role: 'user', content: message, sources: [], status: 'done' },
+      { id: assistantId, role: 'assistant', content: '', sources: [], status: 'streaming' },
     ])
     setIsStreaming(true)
 
@@ -94,6 +103,9 @@ export function useChat(language: Language) {
           case 'meta':
             setConversationId(event.conversationId)
             storeId(event.conversationId)
+            break
+          case 'sources':
+            updateAssistant((m) => ({ ...m, sources: event.sources }))
             break
           case 'delta':
             updateAssistant((m) => ({ ...m, content: m.content + event.text }))
