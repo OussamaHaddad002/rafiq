@@ -35,6 +35,7 @@ If `uv` isn't on your PATH, `python -m uv` works too.
 # Whole stack (http://localhost:8080). Uses .env; LLM_PROVIDER=fake works without an API key.
 docker compose up -d --build
 docker compose exec api python -m app.rag.ingest  # load the knowledge base
+docker compose exec api python -m app.clinic.seed # doctors and weekly schedules
 
 # Database only (for local dev and tests). Creates `rafiq` and `rafiq_test` on first start.
 docker compose up -d db
@@ -46,6 +47,7 @@ uv run alembic revision --autogenerate -m "..."  # new migration after model cha
 uv run uvicorn app.main:app --reload             # http://localhost:8000/docs
 uv run pytest                                     # needs the db container
 uv run python -m app.rag.ingest                   # load data/clinic into the db (re-run safe)
+uv run python -m app.clinic.seed                  # doctors + schedules (re-run safe)
 uv run python -m scripts.retrieval_check          # retrieval hit rate / MRR on the sanity set
 uv run python scripts/build_kb_pdfs.py            # rebuild the KB PDFs from data/clinic-src
 uv run ruff format . && uv run ruff check . && uv run mypy app tests

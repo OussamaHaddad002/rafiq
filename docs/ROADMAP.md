@@ -18,13 +18,13 @@ This is the single source of truth for **what's done, what's in progress, and wh
 | M0 | Planning & setup | ✅ | Plan written, repo on GitHub |
 | M1 | Foundation | 🟡 | `docker compose up` → streaming chat in AR/FR/EN, CI green |
 | M2 | RAG | ✅ | Arabic question → cited answer from a French PDF |
-| M3 | Agent & tools | ⬜ | Full booking by chat in each language |
+| M3 | Agent & tools | ✅ | Full booking by chat in each language |
 | M4 | Evaluation & CI gate | ⬜ | A PR that breaks a prompt fails CI with a results table |
 | M5 | Telemetry & dashboard | ⬜ | Every conversation shows tokens, $, latency per stage |
 | M6 | Voice | ⬜ | Book an appointment by voice |
 | M7 | Deploy, polish & showcase | ⬜ | Public URL + README + 2-minute video |
 
-**Current focus:** M3 (agent & tools). Still open from M1: mobile-width and dark-mode check.
+**Current focus:** M4 (evaluation & CI gate). Still open: mobile-width / dark-mode check.
 
 ---
 
@@ -103,23 +103,26 @@ This is the single source of truth for **what's done, what's in progress, and wh
 
 ---
 
-## M3 — Agent & tools ⬜
+## M3 — Agent & tools ✅
 
 **Goal:** a reliable tool-calling agent that manages appointments.
 
-- [ ] Seed data: specialties, ~8 doctors, weekly schedules, generated slots (script, safe to re-run)
-- [ ] Agent loop: model → tool calls → results → model, with max-iterations guard and error handling
-- [ ] Tool registry with Pydantic schemas → JSON schema for the model
-- [ ] Tools: `list_doctors`, `check_availability`, `book_appointment`, `lookup_appointment`, `reschedule_appointment`, `cancel_appointment`, `handoff_to_human`, and `search_docs` wired as a tool
-- [ ] Confirmation step before any write action (book / reschedule / cancel)
-- [ ] Authorization: booking code + phone required for lookup or changes
-- [ ] Date handling: relative dates ("jeudi prochain", "بعد غدوة"), clinic timezone
-- [ ] Guardrails: no diagnosis or medication advice; emergency redirect; stay in scope
-- [ ] Prompt-injection defense: retrieved content is treated as data, never as instructions
-- [ ] UI: tool activity indicators ("Checking availability…"), booking confirmation card
-- [ ] Tests: each tool (unit), agent loop with a fake LLM (integration)
+- [x] Seed data: 9 doctors and weekly schedules matching `medecins.pdf` (`python -m app.clinic.seed`, safe to re-run). Free slots are computed from the schedules, so there is no slots table (decision #26)
+- [x] Agent loop: model → tool calls → results → model, at most 6 steps, with a fallback reply in the patient's language; tool errors go back to the model as data so it can recover
+- [x] Tool registry: Pydantic argument models → JSON Schema (titles stripped to save tokens)
+- [x] Tools: `list_doctors`, `check_availability`, `book_appointment`, `lookup_appointment`, `reschedule_appointment`, `cancel_appointment`, `handoff_to_human`. Document search stays automatic on every turn instead of becoming a tool (decision #24)
+- [x] Confirmation before any write: tools only create a pending action; the patient presses Confirm on a card and the server executes it. Cards expire after 15 min, and a newer card replaces older ones (decision #25)
+- [x] Double booking blocked by the database (partial unique index on doctor + start time)
+- [x] Authorization: booking code + phone required for lookup or changes; a wrong pair reveals nothing
+- [x] Date handling: clinic time zone (Africa/Tunis), 2-week calendar in the prompt, and relative days ("tomorrow", "بعد غدوة", "next Monday") resolved in code through `day` / `weekday` arguments (decision #27)
+- [x] Empty searches return the next free slots, with weekday names on every date
+- [x] Guardrails and prompt-injection rules: no diagnosis or medication advice, emergency redirect, documents and tool results are data, not instructions
+- [x] UI: tool activity ("Checking availability…"), Confirm / Cancel card (localized, dates in clinic time, late-cancellation fee warning), **bold** rendered safely
+- [x] Tests: scheduling, phone handling, every tool and the confirmation rules against Postgres, the agent loop and the full API flow with a scripted model, OpenAI and Claude tool-call adapters, button labels matching between prompt and UI (API 136, web 22)
+- [x] Real `gpt-4o-mini` check: book (FR), cancel (Darija), reschedule and lookup (EN), relative dates (EN / AR / FR). About $0.01 in total
+- [x] Visual check in a browser: full booking in French and in Arabic / Darija (RTL card, Confirm → booking code, state kept after reload). Fixes from it: slots returned as ranges + 3 suggestions (the model listed all 8), button names given to the model in the interface language, 24-hour times on the card
 
-**Done when:** a user can book, look up, reschedule and cancel by chat in AR, FR and EN.
+**Done when:** a user can book, look up, reschedule and cancel by chat in AR, FR and EN. ✅
 
 ---
 
@@ -133,6 +136,7 @@ This is the single source of truth for **what's done, what's in progress, and wh
 - [ ] Metrics: recall@5, MRR, correctness, faithfulness, tool accuracy, language match, refusal correctness, latency, cost
 - [ ] LLM judge with a fixed rubric (and a few hand-labelled cases to check the judge itself)
 - [ ] Reports: JSON (machine) + Markdown (human) tables broken down by language × category
+- [ ] Seed cases from M3 testing: relative dates ("next Monday", "بعد غدوة"), reschedule after lookup, no availability → next free slots, confirmation never claimed before the button
 - [ ] Seed cases from manual testing: shorthand in another language than the conversation ("Mutuelle Yasmine + cardiology"), follow-up that keeps the insurer ("Et pour une échographie ?"), ambiguous item with several prices (abdominal vs. cardiac ultrasound: list both)
 - [ ] Baseline run committed (`evals/reports/baseline.json`)
 - [ ] Model comparison run (e.g. `gpt-4o-mini` vs. `gpt-4.1-nano` / `gpt-4.1-mini`; no GPT-5 models): accuracy vs. cost vs. latency table. Keep it small: the credit budget is limited
@@ -232,6 +236,8 @@ Newest first. One line per work session: what got done, any blockers, what's nex
 
 | Date | Milestone | Update |
 |---|---|---|
+| 2026-10-21 | M3 | Browser check of the booking flow in French and Arabic. Polished: slot ranges + suggestions instead of long lists, localized button names in replies, 24-hour times on the card. |
+| 2026-10-21 | M3 ✅ | Tool-calling agent: 7 tools, provider-neutral loop (OpenAI + Claude), pending actions confirmed by a UI button, double booking blocked by the database. Real-model testing found and fixed: a missing doctor id in lookups (reschedule ran out of steps), and wrong relative dates ("next Monday" became a Saturday), now resolved in code. API 134 tests, web 21. |
 | 2026-10-20 | M2 | Owner tested the UI. Found and fixed: stale frontend (web container not rebuilt, and nginx let browsers cache `index.html`), query rewriter picking an earlier question, insurer lost on follow-ups, inconsistent reply language for shorthand. Replayed the conversation: all answers correct; retrieval still 24/24. Visual check done in EN/AR. API 79 tests, web 14. |
 | 2026-10-20 | M2 ✅ | OpenAI key working. Real embeddings: cross-lingual 61.5% → added query translation with one query per language → 100% hit@5 on 24 questions (MRR 0.91). Real `gpt-4o-mini` answers checked in AR/FR/EN (prices, insurance maths, follow-ups, medical refusal). Report in `evals/reports/`. Cost of all testing so far: under 1 cent. Next: M3. |
 | 2026-10-20 | M2 | Built the RAG pipeline: knowledge base (7 docs), ingestion, hybrid search (pgvector + full-text, RRF), cited answers, sources in the UI. Default model now `gpt-4o-mini`. Fake-embedding retrieval baseline: same-language 100%, cross-lingual 46% (expected without real embeddings). Waiting for an OpenAI key to measure real embeddings. |

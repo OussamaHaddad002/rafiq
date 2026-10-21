@@ -225,11 +225,16 @@ Add a row whenever a significant technical decision is made or changed.
 | 15 | 2026-10-20 | Default LLM: OpenAI `gpt-4o-mini` (no GPT-5 models), `store=False`; the reasoning parameter is only sent to reasoning models | The owner's choice for the credit budget; `store=False` keeps conversations off OpenAI's servers |
 | 16 | 2026-10-20 | Embeddings: OpenAI `text-embedding-3-small` | Multilingual, very cheap for a small knowledge base, nothing to host (BGE-M3 would need PyTorch and about 2 GB of model files) |
 | 17 | 2026-10-20 | pypdf (layout mode) instead of Docling | Docling pulls in PyTorch and large models; layout mode keeps table rows together, which is what our price tables need |
-| 18 | 2026-10-20 | M2 retrieves on every turn; M3 turns retrieval into the `search_docs` tool | Grounded answers now, without the agent loop |
+| 18 | 2026-10-20 | ~~M3 turns retrieval into the `search_docs` tool~~. Replaced by #24 | — |
 | 19 | 2026-10-20 | Reranker postponed until measured | Add one only if the sanity set shows ranking problems |
 | 20 | 2026-10-20 | Chunks: ≤1,200 chars, 200 overlap, never across a page or heading; per-chunk language | Precise page citations; overlap keeps table rows whole |
 | 21 | 2026-10-20 | Keyword search on Arabic-normalized text (no diacritics, unified alef/ya/ta marbuta, article removed) with Postgres `simple` config | One index works for all three languages |
 | 23 | 2026-10-20 | Reply language decided in code: the latest message's language when it is clear (Arabic script, or French / English function words), otherwise the interface language | `gpt-4o-mini` was inconsistent on shorthand such as "Mutuelle Yasmine + cardiology" in the middle of an Arabic conversation; a rule in code is predictable and testable |
+| 24 | 2026-10-21 | Document search stays automatic on every turn; tools are only for actions | Retrieval is measured at 100% hit@5; a search tool would add a model round trip to every question and let the model skip searching |
+| 25 | 2026-10-21 | Writes (book / reschedule / cancel) are proposals stored as pending actions; only the patient's Confirm button executes them, server-side | The model can never book on its own, even if a patient or a document tries to trick it; expiry and "newest card wins" keep stale cards harmless |
+| 26 | 2026-10-21 | Availability computed from weekly schedules; no slots table. Double booking blocked by a partial unique index | Nothing to generate or keep in sync; the database guarantees one booking per slot even with concurrent confirms |
+| 27 | 2026-10-21 | Relative days resolved in code: `check_availability` takes `day` (tomorrow, day after tomorrow) and `weekday` | `gpt-4o-mini` turned "next Monday" into a Saturday or a Friday even with a calendar in the prompt; mapping a phrase to a label is reliable, date arithmetic is not |
+| 28 | 2026-10-21 | Tool errors are results, not exceptions; at most 6 model steps per turn | The model reads a validation error and fixes its call; the step limit bounds cost and latency |
 | 22 | 2026-10-20 | Query translation: one `gpt-4o-mini` call per question rewrites it as a standalone query in fr/en/ar; search uses one query per language, fused with RRF (`RAG_TRANSLATE_QUERIES`) | Embeddings favour documents in the question's language: cross-lingual hit@5 went from 61.5% to 100% for about $0.0001 per question; it also resolves follow-ups |
 
 ## 11. Open questions

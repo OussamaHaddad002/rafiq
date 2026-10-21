@@ -4,11 +4,13 @@
 
 **A voice and chat AI receptionist for clinics, in Arabic, French and English.** It answers patient questions from the clinic's documents (RAG), and books and manages appointments (tool calling). It comes with an eval suite, a cost and latency dashboard, and CI that fails when eval scores drop.
 
-> 🚧 Work in progress. Done: streaming trilingual chat, answers grounded in the clinic's documents with citations (RAG), Docker, CI. Next: tools (appointments), evals, dashboard, voice. See the [roadmap](docs/ROADMAP.md).
+> 🚧 Work in progress. Done: streaming trilingual chat, cited answers from the clinic's documents (RAG), and booking / rescheduling / cancelling appointments through tool calling with a Confirm step. Next: evals, dashboard, voice. See the [roadmap](docs/ROADMAP.md).
 
 ## Results so far
 
 - **Retrieval:** the right document is in the top 5 for **24/24** test questions, including 13 asked in a different language than their source document (Arabic and Darija questions answered from French PDFs). [Report](evals/reports/2026-10-20-retrieval-sanity.md)
+
+- **Appointments:** the agent finds free slots, books, reschedules and cancels in Arabic (including Darija), French and English. Every change waits for the patient's Confirm click and is executed by the server, and the database rules out double bookings.
 
 ## Stack
 
@@ -22,6 +24,7 @@
 cp .env.example .env    # set OPENAI_API_KEY, or LLM_PROVIDER=fake to run without a key
 docker compose up -d --build
 docker compose exec api python -m app.rag.ingest   # load the clinic documents
+docker compose exec api python -m app.clinic.seed  # doctors and their schedules
 ```
 
 Open http://localhost:8080.
